@@ -27,6 +27,7 @@ def train(
     use_adam=[False, False],
     adam_eps=1e-5,
     prefix="",
+    prompt = "I should select 2."
 ):
     random.seed(seed)
     np.random.seed(seed + 1)
@@ -36,7 +37,7 @@ def train(
         lambda_ = [lambda_ for _ in range(2)]
 
     env = BallEnv(5, 3, 2)
-    prompt = "I should select the same number as my partner."
+    
     agents = [
         LangQAgent(
             player_idx=0,
@@ -117,7 +118,8 @@ def parse_args():
     parser.add_argument("--lmd", type=float, default=0.25)
     parser.add_argument("--eps", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--num_run", type=int, default=3)
+    parser.add_argument("--num_run", type=int, default=2)
+    parser.add_argument("--prompt", type=str, default="I should select 2.")
 
     args = parser.parse_args()
     return args
@@ -127,6 +129,8 @@ def get_run_name(args, save_dir):
     d = vars(args)
     name = []
     for k, v in d.items():
+        if(k=="prompt"):
+            continue
         name.append(f"{k}{v}")
     run_name = "_".join(name)
     run_id = 1
@@ -138,12 +142,12 @@ def get_run_name(args, save_dir):
 if __name__ == "__main__":
     import os
     import sys
-    from llm import load_gptjlm_model
+    from llm import load_gptjlm_model, load_gpt2lm_model
     import utils
 
     args = parse_args()
 
-    tokenizer, model = load_gptjlm_model()
+    tokenizer, model = load_gpt2lm_model(name="gpt2")
     cache = {}
     save_dir = get_run_name(args, "exps")
     logger_path = os.path.join(save_dir, "run.log")
@@ -170,6 +174,7 @@ if __name__ == "__main__":
             seed=seed,
             use_adam=[True, True],
             eps=args.eps,
+            prompt=args.prompt
         )
         is_human_policy = show_agent_conventions(best_agents[1])
         human_policy_checks.append(is_human_policy)

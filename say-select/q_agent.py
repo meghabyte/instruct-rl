@@ -25,7 +25,7 @@ class QAgent:
         self.q_table = {}
         self.experience = []
         self.current_epsd = []
-        self.verbose = False
+        self.verbose = True
 
     def reset(self):
         self.current_epsd = []
@@ -57,15 +57,15 @@ class QAgent:
         else:
             action, _ = self._greedy_act(obs)
 
-        # if self.verbose:
-        #     obs = env.observe(self._player_idx)
-        #     q_values = self.get_q(obs)
-        #     print(f"player {self._player_idx}")
-        #     print(f"state: {obs}")
-        #     for a, q in q_values.items():
-        #             print(f"action={a}: q-value={q:.3f}")
-        #     print(f"action: {self._action_names[action]}")
-        #     print(f"----------------")
+        if self.verbose:
+            obs = env.observe(self._player_idx)
+            q_values = self.get_q(obs)
+            print(f"player {self._player_idx}")
+            print(f"state: {obs}")
+            for a, q in q_values.items():
+                    print(f"action={a}: q-value={q:.3f}")
+            print(f"action: {self._action_names[action]}")
+            print(f"----------------")
 
         return action
 
@@ -503,7 +503,11 @@ def show_agent_conventions(agent):
     obs_actions = sorted(obs_actions, key=sort_func)
     last_actions = None
     is_human_policy = True
+    print("Conventions")
     for obs, action in obs_actions:
+        #print(obs)
+        #print("\n")
+        #print(action)
         if last_actions is not None:
             if len(obs[2]) > len(last_actions):
                 print("-" * 20)
@@ -521,6 +525,8 @@ def show_agent_conventions(agent):
                 is_human_policy = False
 
         last_actions = obs[2]
+    print("is human policy")
+    print(is_human_policy)
     return is_human_policy
 
 
