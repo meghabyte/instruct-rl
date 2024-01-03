@@ -1,0 +1,4 @@
+200,300,2000
+I should follow the strategy of choosing action 4 if the observation is '2', action 1 if the observation is '3', action 5 if the observation is '4', and action 1 if the observation is '5'.,I should follow the strategy of choosing actions 2 and 3 for observations ['1'], ['2'], ['2', '1'], ['1', '2'], ['2', '2'], ['3', '3'], ['1', '4'], ['2', '4'], ['3', '4'], ['4', '4'], ['5', '4'], ['1', '5'], ['2', '5'], ['3', '5'], and ['4', '5'] to receive high reward.,I should follow the strategy of choosing the same action as AGENT 1 in the observation sequence and then choosing the action 'quit' to receive a high reward, based on the examples.
+0.15999999999999998,-0.05333333333333334,0.78
+(False, 0.7666666666666667),(False, 0.26666666666666666),(False, 0.13333333333333333)
