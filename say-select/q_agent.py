@@ -16,16 +16,19 @@ class QAgent:
         self._num_action = num_action
         self._replay_size = replay_size
         self._action_names = {i: str(i + 1) for i in range(self._num_action)}
+        self._agent0_action_names = {0: '3', 1: '5', 2: '1', 3: '2', 4: '4'}
         if player_idx == 1:
             self._action_names[self._num_action - 1] = "0"
         self._action_names[-1] = "no-op"
-        # print(f"player {self._player_idx}")
-        # print(f"action_names: {self._action_names}")
+        self._agent0_action_names[-1] = "no-op"
+        print("ACTION NAMES")
+        print(f"player {self._player_idx}")
+        print(f"action_names: {self._action_names}")
 
         self.q_table = {}
         self.experience = []
         self.current_epsd = []
-        self.verbose = True
+        self.verbose = False
 
     def reset(self):
         self.current_epsd = []
@@ -229,7 +232,7 @@ class LangQAgent(QAgent):
             if isinstance(past_action, Tuple):
                 past_action = past_action[-1]
             prompt = (
-                f"{self._prompt} My partner selected {self._action_names[past_action]}."
+                f"{self._prompt} My partner selected {self._agent0_action_names[past_action]}."
             )
         else:
             prompt = self._prompt
@@ -489,7 +492,7 @@ def eval_agents_specific(
         agent.end_of_episode()
 
 
-def show_agent_conventions(agent):
+def show_agent_conventions(agent, reward=0):
     assert agent._player_idx == 1
     obs_actions = agent.get_policy()
 
@@ -504,30 +507,33 @@ def show_agent_conventions(agent):
     last_actions = None
     is_human_policy = True
     print("Conventions")
+    examples = []
     for obs, action in obs_actions:
         #print(obs)
         #print("\n")
         #print(action)
-        if last_actions is not None:
-            if len(obs[2]) > len(last_actions):
-                print("-" * 20)
-            elif obs[2][-1] != last_actions[-1] and len(obs[2]) > 1:
-                print("-" * 20)
+        #if last_actions is not None:
+            #if len(obs[2]) > len(last_actions):
+                #print("-" * 20)
+            #elif obs[2][-1] != last_actions[-1] and len(obs[2]) > 1:
+                #print("-" * 20)
         if action == 5:
-            print(f"{[agent._action_names[a] for a in obs[2]]} -> quit")
+            #print(f"{[agent._action_names[a] for a in obs[2]]} -> quit")
+            examples.append("OBSERVATION: "+str([agent._agent0_action_names[a] for a in obs[2]])+",ACTION: quit,REWARD: "+str(int(reward*100)/100))
             if len(obs[2]) != 2 or obs[2][0] != obs[2][1]:
                 is_human_policy = False
         else:
-            print(
-                f"{[agent._action_names[a] for a in obs[2]]} -> {agent._action_names[action]}"
-            )
+            #print(
+                #f"{[agent._action_names[a] for a in obs[2]]} -> {agent._action_names[action]}"
+           # )
+            examples.append("OBSERVATION: "+str([agent._agent0_action_names[a] for a in obs[2]])+",ACTION: "+str(agent._action_names[action])+",REWARD: "+str(int(reward*100)/100))
             if obs[2][-1] != action:
                 is_human_policy = False
 
         last_actions = obs[2]
-    print("is human policy")
-    print(is_human_policy)
-    return is_human_policy
+    #print("is human policy")
+    #print(is_human_policy)
+    return is_human_policy, examples
 
 
 def show_agent_conventions_simple_env(agent, verbose=False):

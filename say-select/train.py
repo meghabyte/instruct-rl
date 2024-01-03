@@ -3,6 +3,7 @@ import random
 import numpy as np
 import argparse
 import tqdm
+import prompts
 
 from ball_env import *
 from q_agent import *
@@ -27,7 +28,8 @@ def train(
     use_adam=[False, False],
     adam_eps=1e-5,
     prefix="",
-    prompt = "I should select 2."
+    prompt1 = "I should select 2.",
+    prompt2 = "I should select 2."
 ):
     random.seed(seed)
     np.random.seed(seed + 1)
@@ -43,7 +45,7 @@ def train(
             player_idx=0,
             num_action=env._num_ball,
             replay_size=replay_size,
-            prompt=prompt,
+            prompt=prompt1,
             lambda_=lambda_[0],
             model=model,
             tokenizer=tokenizer,
@@ -57,7 +59,7 @@ def train(
             player_idx=1,
             num_action=env._num_ball + 1,
             replay_size=replay_size,
-            prompt=prompt,
+            prompt=prompt2,
             lambda_=lambda_[1],
             model=model,
             tokenizer=tokenizer,
@@ -74,7 +76,9 @@ def train(
         agents[1].set_partner(agents[0])
 
     max_score = -100
+    min_score = 10000
     best_agents = []
+    worst_agents = []
 
     train_scores = []
     eval_scores = []
@@ -94,9 +98,15 @@ def train(
         eval_score = eval_agents(env, agents)
         train_scores.append(train_score)
         eval_scores.append(eval_score)
+        #print("EVAL SCORE")
+        #print(eval_score)
         if eval_score >= max_score:
             max_score = eval_score
             best_agents = [agent.clone() for agent in agents]
+        if eval_score <= min_score:
+            min_score = eval_score
+            worst_agents = [agent.clone() for agent in agents]
+
 
     # title = None
     if ax is not None:
@@ -107,7 +117,7 @@ def train(
         )
         ax.legend()
 
-    return best_agents, agents, None
+    return best_agents, worst_agents, agents, None, max_score, min_score
 
 
 def parse_args():
@@ -118,8 +128,9 @@ def parse_args():
     parser.add_argument("--lmd", type=float, default=0.25)
     parser.add_argument("--eps", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--num_run", type=int, default=2)
-    parser.add_argument("--prompt", type=str, default="I should select 2.")
+    parser.add_argument("--num_run", type=int, default=1)
+    parser.add_argument("--prompt1", type=str, default="I should select 2.")
+    parser.add_argument("--prompt2", type=str, default="I should select 2.")
 
     args = parser.parse_args()
     return args
@@ -136,6 +147,7 @@ def get_run_name(args, save_dir):
     run_id = 1
     while os.path.exists(os.path.join(save_dir, run_name)):
         run_name += f"_run{run_id}"
+    run_name= "silly"
     return os.path.join(save_dir, run_name)
 
 
@@ -150,7 +162,7 @@ if __name__ == "__main__":
     tokenizer, model = load_gpt2lm_model(name="gpt2")
     cache = {}
     save_dir = get_run_name(args, "exps")
-    logger_path = os.path.join(save_dir, "run.log")
+    logger_path =os.path.join(save_dir, "run.log")
     sys.stdout = utils.Logger(logger_path)
     print(f"saving to {save_dir}")
 
@@ -158,13 +170,13 @@ if __name__ == "__main__":
     final_results = []
     human_policy_checks = []
     for j, seed in enumerate(list(range(args.seed, args.seed + args.num_run))):
-        ax[j].set_ylim(ymin=-1.5, ymax=1.0)  # type: ignore
-        best_agents, agents, title = train(
+        #ax[j].set_ylim(ymin=-1.5, ymax=1.0)  # type: ignore
+        best_agents, worst_agents, agents, title, best_score, worst_score = train(
             True,
-            ax[j],  # type: ignore
+            None,  # type: ignore
             args.total_step,
             replay_size=1000,
-            lambda_=[0.0, args.lmd],
+            lambda_=[0, args.lmd],
             lr=args.lr,
             epoch_len=100,
             batchsize=args.batchsize,
@@ -174,13 +186,27 @@ if __name__ == "__main__":
             seed=seed,
             use_adam=[True, True],
             eps=args.eps,
-            prompt=args.prompt
+            prompt1="", #alice
+            prompt2=args.prompt2
         )
-        is_human_policy = show_agent_conventions(best_agents[1])
+        
+        is_human_policy, worst_examples = show_agent_conventions(worst_agents[1], worst_score+5)
+        is_human_policy, best_examples= show_agent_conventions(best_agents[1], best_score+5)
+        next_prompt = prompts.RULE_PROMPT_PREFIX
+        +"LOW REWARD EXAMPLES:\n"
+        +"\n".join(worst_examples)
+        +"\nHIGH REWARD EXAMPLES:\n"
+        +"\n".join(best_examples)
+        print(next_prompt)
+        #examples = worst_examples + best_examples
+        #random.shuffle(examples)
+        #print("\n".join(examples))
+        #print(len(examples))
+        print(best_score)
         human_policy_checks.append(is_human_policy)
     final_results.append(f"human policy rate: {np.mean(human_policy_checks)}")
 
-    fig.tight_layout()
-    fig.savefig(f"{save_dir}/plot.png")
+    #fig.tight_layout()
+    #fig.savefig(f"{save_dir}/plot.png")
     for ret in final_results:
         print(ret)
